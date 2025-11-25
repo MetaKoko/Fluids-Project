@@ -361,3 +361,16 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Source2.cpp
+/Source3.cpp
+/Source4.cpp
+/Source5.cpp
+/Source7.cpp
+/Source6.cpp
+/Sphere_V.cpp
+/Sphere_VplusT_FChaDir.cpp
+/PointForces.cpp
+/Sphere_VplusT_FConDir.cpp
+/Still_Quiver.cpp
+/Source.cpp
+/Source1.cpp
