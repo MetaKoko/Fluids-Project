@@ -143,9 +143,9 @@
     <ClCompile Include="Source6.cpp" />
     <ClCompile Include="Source5.cpp" />
     <ClCompile Include="Source1.cpp" />
-    <ClCompile Include="Rewrite Code 1.cpp" />
-    <ClCompile Include="Rewrite Code 3.cpp" />
-    <ClCompile Include="Rewrite Code 2.cpp" />
+    <ClCompile Include="Still_Quiver_Readable.cpp" />
+    <ClCompile Include="Sphere_V_Readable.cpp" />
+    <ClCompile Include="PointForces_Readable.cpp" />
     <ClCompile Include="Source2.cpp" />
     <ClCompile Include="Source3.cpp" />
     <ClCompile Include="Source4.cpp" />

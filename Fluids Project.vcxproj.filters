@@ -33,13 +33,13 @@
     <ClCompile Include="Source1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Rewrite Code 1.cpp">
+    <ClCompile Include="Still_Quiver_Readable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Rewrite Code 3.cpp">
+    <ClCompile Include="Sphere_V_Readable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Rewrite Code 2.cpp">
+    <ClCompile Include="PointForces_Readable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source3.cpp">
