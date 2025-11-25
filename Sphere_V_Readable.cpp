@@ -211,7 +211,7 @@ void Draw_Everything(std::vector<sf::Vertex>& lines){
 int main() {
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Spheres moving in viscous fluid");
 
-    // Test spheres with different radii to see finite-size effects
+    // Here is where we add our spheres
     Add_Sphere(sf::Vector2f(200.0f, 200.0f), sf::Vector2f(1000.0f, 0.0f), 10.0f, sf::Color::Blue);
     Add_Sphere(sf::Vector2f(600.0f, 400.0f), sf::Vector2f(-500.0f, -500.0f), 10.0f, sf::Color::Red);
     Add_Sphere(sf::Vector2f(1000.0f, 300.0f), sf::Vector2f(-400.0f, 500.0f), 10.0f, sf::Color::Green);
