@@ -7,7 +7,7 @@ struct Sphere_Data{
     sf::Vector2f F_Vector;
     sf::Color Colour;
     sf::Vector2f V;
-    float Radius;
+    float Rad;
 };
 
 std::vector<Sphere_Data> Spheres_List;
@@ -16,8 +16,8 @@ float Time_Step = 20.0f;
 float Screen_Width = 1340.0f;
 float Screen_Height = 700.0f;
 
-void Add_Sphere(const sf::Vector2f& Pos_Vector, const sf::Vector2f& F_Vector, float Radius = 20.0f, sf::Color Colour = sf::Color::Red){
-    Spheres_List.push_back({Pos_Vector, F_Vector, Colour, sf::Vector2f(0.0f, 0.0f), Radius});
+void Add_Sphere(const sf::Vector2f& Pos_Vector, const sf::Vector2f& F_Vector, float Rad = 20.0f, sf::Color Colour = sf::Color::Red){
+    Spheres_List.push_back({ Pos_Vector, F_Vector, Colour, sf::Vector2f(0.0f, 0.0f), Rad });
 }
 
 // This is for calculating stokeslet part of the velocity
@@ -29,77 +29,110 @@ sf::Vector2f Stokeslet(sf::Vector2f Dist, sf::Vector2f F_Vector){
     float Constant = 1.0f/(8.0f*pi*Visc);
     float Dot_Prod = Dist.x*F_Vector.x+Dist.y*F_Vector.y;
 
+    float r3 = r*r*r;
+
     return sf::Vector2f(
-        Constant*(F_Vector.x*1.0f/r+Dot_Prod*Dist.x*1.0f/(r*r*r)),
-        Constant*(F_Vector.y*1.0f/r+Dot_Prod*Dist.y*1.0f/(r*r*r))
+        Constant*(F_Vector.x*1.0f/r+Dot_Prod*Dist.x*1.0f/r3),
+        Constant*(F_Vector.y*1.0f/r+Dot_Prod*Dist.y*1.0f/r3)
     );
 }
 
-// This is for calculating the faxien correction part of the velocity
-sf::Vector2f Faxien_Correction(sf::Vector2f Dist, sf::Vector2f F_Vector, float a_squared){
+// This is for calculating the faxen correction
+sf::Vector2f faxen_Correction(sf::Vector2f Dist, sf::Vector2f F_Vector, float a_squared){
     float r = std::sqrt(Dist.x*Dist.x+Dist.y*Dist.y);
     if (r<0.0001f) return sf::Vector2f(0.0f, 0.0f);
 
     float pi = 3.14159f;
     float Dot_Prod = Dist.x*F_Vector.x+Dist.y*F_Vector.y;
-    float Constant = a_squared/(24.0f*pi*Visc);
+    float Constant = a_squared/(48.0f*pi*Visc);
+    
+    float r3 = r*r*r;
+    float r5 = r*r*r*r*r;
 
     return sf::Vector2f(
-        Constant*(F_Vector.x*1.0f/(r*r*r)-3.0f*Dot_Prod*Dist.x*1.0f/(r*r*r*r*r)),
-        Constant*(F_Vector.y*1.0f/(r*r*r)-3.0f*Dot_Prod*Dist.y*1.0f/(r*r*r*r*r))
+        Constant*((F_Vector.x*1.0f/r3)-3.0f*Dot_Prod*Dist.x*1.0f/r5),
+        Constant*((F_Vector.y*1.0f/r3)-3.0f*Dot_Prod*Dist.y*1.0f/r5)
     );
 }
+
+// This is for the terms where we have to apply a fexien correction a faxen correction
+sf::Vector2f faxen_Correction_Of_faxen(sf::Vector2f Dist, sf::Vector2f F_Vector, float a_squared_source, float a_squared_target){
+    float r = std::sqrt(Dist.x*Dist.x+Dist.y*Dist.y);
+    if (r<0.0001f) return sf::Vector2f(0.0f, 0.0f);
+
+    float pi = 3.14159f;
+    float Dot_Prod = Dist.x*F_Vector.x+Dist.y*F_Vector.y;
+    float Constant = (a_squared_target*a_squared_source)/(288.0f*pi*Visc);
+
+    float r5 = r*r*r*r*r;
+    float r7 = r*r*r*r*r*r*r;
+    float r9 = r*r*r*r*r*r*r*r*r;
+
+    return sf::Vector2f(
+        Constant*((9.0f*F_Vector.x/r5)-45.0f*Dot_Prod*Dist.x/r7+105.0f*Dot_Prod*Dist.x/r9),
+        Constant*((9.0f*F_Vector.y/r5)-45.0f*Dot_Prod*Dist.y/r7+105.0f*Dot_Prod*Dist.y/r9)
+    );
+}
+
 //Quiver plot velocity calculation from all spheres
 void Velocity_From_Sphere(const sf::Vector2f& Point, sf::Vector2f& V_Vector){
     V_Vector = sf::Vector2f(0.0f, 0.0f);
 
     // To implement periodic boundary conditions, we consider a 3x3 grid, were we have 8 images around our main box
     for (const auto& Sphere : Spheres_List){
-        for (int dx = -1; dx<=1; dx = dx+1){
-            for (int dy = -1; dy<=1; dy = dy+1){
+        for (int dx = -1; dx <= 1; dx = dx+1){
+            for (int dy = -1; dy <= 1; dy = dy+1){
                 sf::Vector2f Image_Pos = Sphere.Pos_Vector;
                 Image_Pos.x = Image_Pos.x+dx*Screen_Width;
                 Image_Pos.y = Image_Pos.y+dy*Screen_Height;
 
                 sf::Vector2f Dist = Point-Image_Pos;
-                sf::Vector2f stokes_flow = Stokeslet(Dist, Sphere.F_Vector);
-                sf::Vector2f correction_flow = Faxien_Correction(Dist, Sphere.F_Vector, Sphere.Radius*Sphere.Radius);
+                sf::Vector2f Stokes = Stokeslet(Dist, Sphere.F_Vector);
+                sf::Vector2f Correction = faxen_Correction(Dist, Sphere.F_Vector, Sphere.Rad*Sphere.Rad);
 
-                V_Vector.x = V_Vector.x+stokes_flow.x+correction_flow.x;
-                V_Vector.y = V_Vector.y+stokes_flow.y+correction_flow.y;
+                V_Vector.x = V_Vector.x+Stokes.x+Correction.x;
+                V_Vector.y = V_Vector.y+Stokes.y+Correction.y;
             }
         }
     }
 }
+
 //Velocity calculation for sphere motion
 void Calc_Sphere_Velocity(size_t Sphere_Index, sf::Vector2f& V_Vector){
-    Sphere_Data Sphere = Spheres_List[Sphere_Index];
+    Sphere_Data target_sphere = Spheres_List[Sphere_Index];
     V_Vector = sf::Vector2f(0.0f, 0.0f);
 
-    // This is to calculate the stokes drag due to its own force
     float pi = 3.14159f;
-    float self_mob = 1.0f/(6.0f*pi*Visc* Sphere.Radius);
-    V_Vector.x = V_Vector.x+Sphere.F_Vector.x*self_mob;
-    V_Vector.y = V_Vector.y+Sphere.F_Vector.y*self_mob;
 
-    //Contributions from other spheres
+    // This is to calculate the stokes drag due to its own force
+    float self_mob = 1.0f/(6.0f*pi*Visc*target_sphere.Rad);
+    V_Vector.x = V_Vector.x+target_sphere.F_Vector.x*self_mob;
+    V_Vector.y = V_Vector.y+target_sphere.F_Vector.y*self_mob;
+
+    // Contributions from other spheres
     for (size_t i = 0; i<Spheres_List.size(); i = i+1){
         if (i == Sphere_Index) continue;
-        Sphere_Data Sphere2 = Spheres_List[i];
+        Sphere_Data source_sphere = Spheres_List[i];
 
-		// This is again for periodic boundary conditions
-        for (int dx = -1; dx<=1; dx = dx+1){
-            for (int dy = -1; dy<=1; dy = dy+1){
-                sf::Vector2f Image_pos = Sphere2.Pos_Vector;
+        // This is again for periodic boundary conditions
+        for (int dx = -1; dx <= 1; dx = dx+1){
+            for (int dy = -1; dy <= 1; dy = dy+1){
+                sf::Vector2f Image_pos = source_sphere.Pos_Vector;
                 Image_pos.x = Image_pos.x+dx*Screen_Width;
                 Image_pos.y = Image_pos.y+dy*Screen_Height;
 
-                sf::Vector2f Dist = Sphere.Pos_Vector-Image_pos;
-                sf::Vector2f stokes_flow = Stokeslet(Dist, Sphere2.F_Vector);
-                sf::Vector2f correction_flow = Faxien_Correction(Dist, Sphere2.F_Vector, Sphere2.Radius*Sphere2.Radius);
+                sf::Vector2f Dist = target_sphere.Pos_Vector-Image_pos;
 
-                V_Vector.x = V_Vector.x+stokes_flow.x+correction_flow.x;
-                V_Vector.y = V_Vector.y+stokes_flow.y+correction_flow.y;
+                // This puts all of the terms together
+                sf::Vector2f Stokes = Stokeslet(Dist, source_sphere.F_Vector);
+                sf::Vector2f S_Correction = faxen_Correction(Dist, source_sphere.F_Vector, source_sphere.Rad*source_sphere.Rad);
+
+                sf::Vector2f T_Correction_Stokes = faxen_Correction(Dist, source_sphere.F_Vector, target_sphere.Rad*target_sphere.Rad);
+                sf::Vector2f T_Correction_of_S_Correction = faxen_Correction_Of_faxen(Dist, source_sphere.F_Vector,
+                    source_sphere.Rad*source_sphere.Rad, target_sphere.Rad*target_sphere.Rad);
+
+                V_Vector.x = V_Vector.x+Stokes.x+S_Correction.x+T_Correction_Stokes.x+T_Correction_of_S_Correction.x;
+                V_Vector.y = V_Vector.y+Stokes.y+S_Correction.y+T_Correction_Stokes.y+T_Correction_of_S_Correction.y;
             }
         }
     }
@@ -116,12 +149,13 @@ void Update_Position(){
         sphere.Pos_Vector.y = sphere.Pos_Vector.y+sphere.V.y*Time_Step;
 
         if (sphere.Pos_Vector.x<0.0f) sphere.Pos_Vector.x = sphere.Pos_Vector.x+Screen_Width;
-        else if (sphere.Pos_Vector.x>=Screen_Width) sphere.Pos_Vector.x = sphere.Pos_Vector.x-Screen_Width;
+        else if (sphere.Pos_Vector.x >= Screen_Width) sphere.Pos_Vector.x = sphere.Pos_Vector.x-Screen_Width;
 
         if (sphere.Pos_Vector.y<0.0f) sphere.Pos_Vector.y = sphere.Pos_Vector.y+Screen_Height;
-        else if (sphere.Pos_Vector.y>=Screen_Height) sphere.Pos_Vector.y = sphere.Pos_Vector.y-Screen_Height;
+        else if (sphere.Pos_Vector.y >= Screen_Height) sphere.Pos_Vector.y = sphere.Pos_Vector.y-Screen_Height;
     }
 }
+
 void Arrow_Head(std::vector<sf::Vertex>& lines, sf::Vector2f tip, sf::Vector2f Dire, sf::Color colour){
     float headSize = 10.0f;
     float headAngle = 0.6f;
@@ -139,7 +173,7 @@ void Arrow_Head(std::vector<sf::Vertex>& lines, sf::Vector2f tip, sf::Vector2f D
 
 void Draw_Sphere(std::vector<sf::Vertex>& lines, const Sphere_Data& sphere){
     // We draw circles as our spheres for visualization
-    float Radius = sphere.Radius;
+    float Rad = sphere.Rad;
     int Segments = 40;
     float pi = 3.14159f;
 
@@ -147,8 +181,8 @@ void Draw_Sphere(std::vector<sf::Vertex>& lines, const Sphere_Data& sphere){
         float angle1 = 2.0f*pi*i/Segments;
         float angle2 = 2.0f*pi*(i+1)/Segments;
 
-        sf::Vector2f p1 = sphere.Pos_Vector+sf::Vector2f(Radius*std::cos(angle1), Radius*std::sin(angle1));
-        sf::Vector2f p2 = sphere.Pos_Vector+sf::Vector2f(Radius*std::cos(angle2), Radius*std::sin(angle2));
+        sf::Vector2f p1 = sphere.Pos_Vector+sf::Vector2f(Rad*std::cos(angle1), Rad*std::sin(angle1));
+        sf::Vector2f p2 = sphere.Pos_Vector+sf::Vector2f(Rad*std::cos(angle2), Rad*std::sin(angle2));
 
         lines.push_back(sf::Vertex(p1, sphere.Colour));
         lines.push_back(sf::Vertex(p2, sphere.Colour));
@@ -160,13 +194,12 @@ void Draw_Sphere(std::vector<sf::Vertex>& lines, const Sphere_Data& sphere){
     lines.push_back(sf::Vertex(sphere.Pos_Vector, sf::Color::Black));
     lines.push_back(sf::Vertex(force_end, sf::Color::Black));
 
-    // This is to represent the velocity direction
-    float speed = std::sqrt(sphere.V.x*sphere.V.x+sphere.V.y*sphere.V.y);
-    if (speed > 0.1f){
-		float Velocity_Scale = 20.0f;
-        sf::Vector2f velocity_end = sphere.Pos_Vector+sphere.V*Velocity_Scale;
-        lines.push_back(sf::Vertex(sphere.Pos_Vector, sf::Color::Magenta));
-        lines.push_back(sf::Vertex(velocity_end, sf::Color::Magenta));
+    // Draw arrowhead for force direction
+    sf::Vector2f force_dir = force_end-sphere.Pos_Vector;
+    float force_length = std::sqrt(force_dir.x*force_dir.x+force_dir.y*force_dir.y);
+    if (force_length>0.1f){
+        sf::Vector2f force_dir_normalized = force_dir/force_length;
+        Arrow_Head(lines, force_end, force_dir_normalized, sf::Color::Black);
     }
 }
 
@@ -182,9 +215,6 @@ void Draw_Everything(std::vector<sf::Vertex>& lines){
             Velocity_From_Sphere(point, V);
 
             float speed = std::sqrt(V.x*V.x+V.y*V.y);
-
-            // Makes the visualization nicer by removing very small arrows
-            if (speed < 0.0001f) continue;
 
             //This is for drawing our arrows length based on speed
             float scale = 5000.0f;
@@ -203,12 +233,12 @@ void Draw_Everything(std::vector<sf::Vertex>& lines){
     }
 
     // Drawing our spheres
-    for (const auto& sphere:Spheres_List) {
+    for (const auto& sphere : Spheres_List){
         Draw_Sphere(lines, sphere);
     }
 }
 
-int main() {
+int main(){
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Spheres moving in viscous fluid");
 
     // Here is where we add our spheres
@@ -218,8 +248,8 @@ int main() {
 
     std::vector<sf::Vertex> allLines;
 
-    while (window.isOpen()) {
-        while (auto event = window.pollEvent()) {
+    while (window.isOpen()){
+        while (auto event = window.pollEvent()){
             if (event->is<sf::Event::Closed>()) window.close();
         }
 

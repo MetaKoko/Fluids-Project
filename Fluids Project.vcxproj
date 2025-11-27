@@ -143,6 +143,7 @@
     <ClCompile Include="Source6.cpp" />
     <ClCompile Include="Source5.cpp" />
     <ClCompile Include="Source1.cpp" />
+    <ClCompile Include="Sphere_VplusT_FConDir_Readable.cpp" />
     <ClCompile Include="Sphere_VplusT_FChaDir_Readable.cpp" />
     <ClCompile Include="Still_Quiver_Readable.cpp" />
     <ClCompile Include="Sphere_V_Readable.cpp" />

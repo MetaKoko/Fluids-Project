@@ -1,4 +1,4 @@
-ï»¿#include <SFML/Graphics.hpp>
+#include <SFML/Graphics.hpp>
 #include <vector>
 #include <cmath>
 #include <iostream>
@@ -27,7 +27,7 @@ float Screen_Height = 700.0f;
 void Add_Sphere(const sf::Vector2f& Pos_Vector, float F_Mag, const sf::Vector2f& OGF_Dire_V,
     float Torque = 0.0f, float Rad = 20.0f, sf::Color Colour = sf::Color::Red){
 
-    // All of this deals with the visualization of the original force direction and new force direction
+    // All of this deals with the visualization of the original force Dire and new force Dire
     sf::Vector2f NOGF_Dire = OGF_Dire_V;
     float Mag = std::sqrt(NOGF_Dire.x*NOGF_Dire.x+NOGF_Dire.y*NOGF_Dire.y);
     if (Mag>0.0001f){
@@ -35,7 +35,9 @@ void Add_Sphere(const sf::Vector2f& Pos_Vector, float F_Mag, const sf::Vector2f&
         NOGF_Dire.y = NOGF_Dire.y/Mag;
     }
 
+    float OG_Angle = std::atan2(NOGF_Dire.y, NOGF_Dire.x);
     sf::Vector2f OG_F = NOGF_Dire*F_Mag;
+    sf::Vector2f New_F_dir = NOGF_Dire;
 
     Spheres_List.push_back({
         Pos_Vector,
@@ -45,9 +47,9 @@ void Add_Sphere(const sf::Vector2f& Pos_Vector, float F_Mag, const sf::Vector2f&
         sf::Vector2f(0.0f, 0.0f),
         0.0f,
         Rad,
-        0.0f,
+        OG_Angle,
         F_Mag,
-        NOGF_Dire,
+        New_F_dir,
         NOGF_Dire
         });
 }
@@ -113,6 +115,7 @@ float Complete_Disturbance_Vorticity(sf::Vector2f Dist, const Sphere_Data& sourc
 
     float pi = 3.14159f;
 
+
     float Constant = 1.0f/(8.0f*pi*Visc);
     float Cross_Prod = (Dist.x*source_sphere.F_Vector.y-Dist.y*source_sphere.F_Vector.x);
     float Stokeslet_Vorticity = Constant*Cross_Prod/(r*r*r);
@@ -125,7 +128,9 @@ float Complete_Disturbance_Vorticity(sf::Vector2f Dist, const Sphere_Data& sourc
     float Source_Faxen_Vorticity = Source_Faxen_Vorticity_Constant*(-3.0f*Cross_Prod/r5+15.0f*Dot_Prod*Cross_Prod/r7);
 
     float Target_Faxen_Vorticity_Constant = target_Rad*target_Rad/(48.0f*pi*Visc);
-    float Target_Faxen_Vorticity_Stokes = Target_Faxen_Vorticity_Constant*(-3.0f*Cross_Prod/r5+15.0f*Dot_Prod*Cross_Prod/r7);
+    float Target_Faxen_Vorticity_Stokes = Target_Faxen_Vorticity_Constant*(-3.0f*Cross_Prod/r5 +
+        15.0f*Dot_Prod*Cross_Prod/r7 
+        );
 
     return Stokeslet_Vorticity+Rotlet_Vorticity+Source_Faxen_Vorticity+Target_Faxen_Vorticity_Stokes;
 }
@@ -152,13 +157,14 @@ void Calc_Sphere_Velocity_And_Vorticity(size_t Sphere, sf::Vector2f& V_Vector, f
         const Sphere_Data& source_sphere = Spheres_List[i];
 
         // To implement periodic boundary conditions, we consider a 3x3 grid, were we have 8 images around our main box
-        for (int dx = -1; dx<=1; dx = dx+1){
-            for (int dy = -1; dy<=1; dy = dy+1){
+        for (int dx = -1; dx <= 1; dx = dx+1){
+            for (int dy = -1; dy <= 1; dy = dy+1){
                 sf::Vector2f Image_Pos = source_sphere.Pos_Vector;
                 Image_Pos.x = Image_Pos.x+dx*Screen_Width;
                 Image_Pos.y = Image_Pos.y+dy*Screen_Height;
 
                 sf::Vector2f Dist = target_sphere.Pos_Vector-Image_Pos;
+
 
                 sf::Vector2f Stokes_V = Stokeslet(Dist, source_sphere.F_Vector);
                 sf::Vector2f S_Correction = Faxen_Correction(Dist, source_sphere.F_Vector, source_sphere.Rad*source_sphere.Rad);
@@ -166,7 +172,7 @@ void Calc_Sphere_Velocity_And_Vorticity(size_t Sphere, sf::Vector2f& V_Vector, f
                 sf::Vector2f T_Correction_Stokes = Faxen_Correction(Dist, source_sphere.F_Vector, target_sphere.Rad*target_sphere.Rad);
                 sf::Vector2f T_Correction_SourceFaxen = Faxen_Correction_Of_Faxen(Dist, source_sphere.F_Vector,
                     source_sphere.Rad*source_sphere.Rad, target_sphere.Rad*target_sphere.Rad);
-                
+
                 V_Vector.x = V_Vector.x+Stokes_V.x+S_Correction.x+T_Correction_Stokes.x+T_Correction_SourceFaxen.x;
                 V_Vector.y = V_Vector.y+Stokes_V.y+S_Correction.y+T_Correction_Stokes.y+T_Correction_SourceFaxen.y;
 
@@ -177,24 +183,8 @@ void Calc_Sphere_Velocity_And_Vorticity(size_t Sphere, sf::Vector2f& V_Vector, f
     }
 }
 
-void Update_Force_Directions(){
-    for (auto& sphere : Spheres_List){
-        float cos_angle = std::cos(sphere.Angle);
-        float sin_angle = std::sin(sphere.Angle);
-
-        sf::Vector2f New_F_dir;
-        New_F_dir.x = sphere.OGF_Dire.x*cos_angle-sphere.OGF_Dire.y*sin_angle;
-        New_F_dir.y = sphere.OGF_Dire.x*sin_angle+sphere.OGF_Dire.y*cos_angle;
-
-        sphere.F_Vector = New_F_dir*sphere.F_Mag;
-        sphere.F_Dire = New_F_dir;
-    }
-}
-
 // This is our iterate function to update sphere positions
 void Update_Position(){
-    Update_Force_Directions();
-
     for (size_t i = 0; i<Spheres_List.size(); i = i+1){
         sf::Vector2f V_Vector;
         float Angular_V;
@@ -212,9 +202,9 @@ void Update_Position(){
         if (sphere.Angle<0.0f) sphere.Angle = sphere.Angle+2.0f*pi;
 
         if (sphere.Pos_Vector.x<0.0f) sphere.Pos_Vector.x = sphere.Pos_Vector.x+Screen_Width;
-        else if (sphere.Pos_Vector.x>=Screen_Width) sphere.Pos_Vector.x = sphere.Pos_Vector.x-Screen_Width;
+        else if (sphere.Pos_Vector.x >= Screen_Width) sphere.Pos_Vector.x = sphere.Pos_Vector.x-Screen_Width;
         if (sphere.Pos_Vector.y<0.0f) sphere.Pos_Vector.y = sphere.Pos_Vector.y+Screen_Height;
-        else if (sphere.Pos_Vector.y>=Screen_Height) sphere.Pos_Vector.y = sphere.Pos_Vector.y-Screen_Height;
+        else if (sphere.Pos_Vector.y >= Screen_Height) sphere.Pos_Vector.y = sphere.Pos_Vector.y-Screen_Height;
     }
 }
 
@@ -223,10 +213,10 @@ void Velocity_From_Sphere(const sf::Vector2f& Point, sf::Vector2f& V_Vector, flo
     V_Vector = sf::Vector2f(0.0f, 0.0f);
     Vort = 0.0f;
 
-    // This is again for periodic boundary conditions
+    // This is again for periodic boundary conditions 
     for (const auto& sphere : Spheres_List){
-        for (int dx = -1; dx<=1; dx = dx+1){
-            for (int dy = -1; dy<=1; dy = dy+1){
+        for (int dx = -1; dx <= 1; dx = dx+1){
+            for (int dy = -1; dy <= 1; dy = dy+1){
                 sf::Vector2f Image_Pos = sphere.Pos_Vector;
                 Image_Pos.x = Image_Pos.x+dx*Screen_Width;
                 Image_Pos.y = Image_Pos.y+dy*Screen_Height;
@@ -238,6 +228,7 @@ void Velocity_From_Sphere(const sf::Vector2f& Point, sf::Vector2f& V_Vector, flo
                 sf::Vector2f faxen_correction = Faxen_Correction(Dist, sphere.F_Vector, sphere.Rad*sphere.Rad);
                 V_Vector = V_Vector+stokes_flow+faxen_correction;
 
+                // Basic vorticity for visualization (without Faxén corrections for quiver plot)
                 float pi = 3.14159f;
                 float Constant = 1.0f/(8.0f*pi*Visc);
                 float Stokeslet_Vorticity = (Dist.x*sphere.F_Vector.y-Dist.y*sphere.F_Vector.x)*1.0f/(r*r*r);
@@ -270,6 +261,7 @@ void Draw_Sphere(std::vector<sf::Vertex>& lines, const Sphere_Data& sphere){
     int Segments = 32;
     float pi = 3.14159f;
 
+    // Draw sphere body (rotates with orientation)
     for (int i = 0; i<Segments; i = i+1){
         float angle1 = 2.0f*pi*i/Segments+sphere.Angle;
         float angle2 = 2.0f*pi*(i+1)/Segments+sphere.Angle;
@@ -280,16 +272,19 @@ void Draw_Sphere(std::vector<sf::Vertex>& lines, const Sphere_Data& sphere){
         lines.push_back(sf::Vertex(p2, sphere.Colour));
     }
 
-    // BLACK LINE: Shows original force direction
+    // RED LINE: Shows force Direction
     float Force_Scale = 0.03f;
-    sf::Vector2f original_F_end = sphere.Pos_Vector+sphere.OGF_Dire*sphere.F_Mag*Force_Scale;
-    lines.push_back(sf::Vertex(sphere.Pos_Vector, sf::Color::Black));
-    lines.push_back(sf::Vertex(original_F_end, sf::Color::Black));
-
-    // RED LINE: Shows current force direction
     sf::Vector2f current_F_end = sphere.Pos_Vector+sphere.F_Vector*Force_Scale;
     lines.push_back(sf::Vertex(sphere.Pos_Vector, sf::Color::Red));
     lines.push_back(sf::Vertex(current_F_end, sf::Color::Red));
+
+    // BLACK LINE: Shows orientation
+    sf::Vector2f orientation_end = sphere.Pos_Vector+sf::Vector2f(
+        Rad*1.2f*std::cos(sphere.Angle),
+        Rad*1.2f*std::sin(sphere.Angle)
+    );
+    lines.push_back(sf::Vertex(sphere.Pos_Vector, sf::Color::Black));
+    lines.push_back(sf::Vertex(orientation_end, sf::Color::Black));
 }
 
 // Create all the arrows and circles for visualization
@@ -314,6 +309,7 @@ void Draw_Everything(std::vector<sf::Vertex>& lines){
             if (Arrow_Length>50.0f) Arrow_Length = 50.0f;
 
             sf::Vector2f Arrow_Tip = point+Dire*Arrow_Length;
+
             lines.push_back(sf::Vertex(point, sf::Color::Green));
             lines.push_back(sf::Vertex(Arrow_Tip, sf::Color::Green));
 
@@ -329,7 +325,7 @@ void Draw_Everything(std::vector<sf::Vertex>& lines){
 
 int main(){
     sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
-    sf::RenderWindow window(desktop, "Spheres with changing force direction");
+    sf::RenderWindow window(desktop, "Spheres with constant force direction but changing orentation");
     window.setFramerateLimit(60);
 
     // Here is where we add our spheres
