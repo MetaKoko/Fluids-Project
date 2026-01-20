@@ -1,4 +1,4 @@
-#include<vector>
+/*#include<vector>
 #include<cmath>
 #include<SFML/Graphics.hpp>
 
@@ -11,8 +11,8 @@ struct Point_Force_Data {
 };
 
 std::vector<Point_Force_Data> Point_Force_List;
-float Visc = 70.0f;
-float Time_Step = 100.0f;
+float Visc = 1.0f;
+float Time_Step = 1.0f;
 float Screen_Width = 1340.0f;
 float Screen_Height = 700.0f;
 
@@ -200,9 +200,9 @@ int main() {
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Stokes Flow");
 
     // Here is where we can add our point forces, first vector is the postion and the second is the force of it
-    Point_Force(sf::Vector2f(200.0f, 200.0f), sf::Vector2f(1000.0f, 0.0f), sf::Color::Blue);
-    Point_Force(sf::Vector2f(600.0f, 400.0f), sf::Vector2f(-500.0f, -500.0f), sf::Color::Red);
-    Point_Force(sf::Vector2f(1000.0f, 300.0f), sf::Vector2f(-400.0f, 500.0f), sf::Color::Green);
+    Point_Force(sf::Vector2f(50.0f, 200.0f), sf::Vector2f(200.0f, 0.0f), sf::Color::Blue);
+    Point_Force(sf::Vector2f(50.0f, 375.0f), sf::Vector2f(200.0f, 0.0f), sf::Color::Red);
+    Point_Force(sf::Vector2f(50.0f, 500.0f), sf::Vector2f(200.0f, 0.0f), sf::Color::Green);
 
     std::vector<sf::Vertex> allLines;
 
@@ -220,4 +220,4 @@ int main() {
     }
 
     return 0;
-}
+}*/

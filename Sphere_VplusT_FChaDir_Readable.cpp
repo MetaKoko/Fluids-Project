@@ -1,4 +1,4 @@
-﻿#include <SFML/Graphics.hpp>
+﻿/*#include <SFML/Graphics.hpp>
 #include <vector>
 #include <cmath>
 #include <iostream>
@@ -357,4 +357,4 @@ int main(){
     }
 
     return 0;
-}
+}*/

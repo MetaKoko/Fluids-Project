@@ -70,6 +70,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>false</VcpkgEnabled>
+    <VcpkgManifestInstall>false</VcpkgManifestInstall>
+    <VcpkgAutoLink>false</VcpkgAutoLink>
+    <VcpkgApplocalDeps>false</VcpkgApplocalDeps>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -106,13 +112,13 @@
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\klaud\OneDrive\Desktop\vcpkg\installed-x64\x64-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\klaud\OneDrive\Desktop\SFMLFile\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\klaud\OneDrive\Desktop\vcpkg\installed-x64\x64-windows\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sfml-graphics.lib;sfml-window.lib;sfml-system.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\klaud\OneDrive\Desktop\SFMLFile\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sfml-graphics-d.lib;sfml-window-d.lib;sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -127,28 +133,29 @@
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\klaud\OneDrive\Desktop\vcpkg\installed-x64\x64-windows\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\klaud\OneDrive\Desktop\SFMLFile\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\klaud\OneDrive\Desktop\vcpkg\installed-x64\x64-windows\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>sfml-graphics.lib;sfml-window.lib;sfml-system.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Users\klaud\OneDrive\Desktop\SFMLFile\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>sfml-graphics-d.lib;sfml-window-d.lib;sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="PointForces.cpp" />
-    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="RFT_attempt_1.cpp" />
     <ClCompile Include="Source7.cpp" />
     <ClCompile Include="Source6.cpp" />
     <ClCompile Include="Source5.cpp" />
-    <ClCompile Include="Source1.cpp" />
+    <ClCompile Include="RFT_attempt_2.cpp" />
+    <ClCompile Include="3_Falling_Point_Forces.cpp" />
     <ClCompile Include="Sphere_VplusT_FConDir_Readable.cpp" />
     <ClCompile Include="Sphere_VplusT_FChaDir_Readable.cpp" />
     <ClCompile Include="Still_Quiver_Readable.cpp" />
     <ClCompile Include="Sphere_V_Readable.cpp" />
     <ClCompile Include="PointForces_Readable.cpp" />
-    <ClCompile Include="Source2.cpp" />
+    <ClCompile Include="RFT.cpp" />
     <ClCompile Include="Source3.cpp" />
     <ClCompile Include="Source4.cpp" />
     <ClCompile Include="Sphere_VplusT_FChaDir.cpp" />

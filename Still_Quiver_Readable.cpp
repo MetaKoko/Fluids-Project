@@ -1,4 +1,4 @@
-#include<vector>
+/*#include<vector>
 #include<cmath>
 #include<SFML/Graphics.hpp>
 
@@ -54,7 +54,7 @@ void Arrow_Head(std::vector<sf::Vertex>& lines, sf::Vector2f tip,
 
 void Draw_Point_Force(std::vector<sf::Vertex>& lines, PF_Data PF) {
     // We draw circles to as out point forces for visualization
-    float Radius = 10.0f;
+    float Radius = 20.0f;
     int Circle_Segments = 40;
     float pi = 3.14159f;
 
@@ -136,4 +136,4 @@ int main() {
     }
 
     return 0;
-}
+}*/
