@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FilamentV2.cpp" />
     <ClCompile Include="PointForces.cpp" />
     <ClCompile Include="RFT_attempt_1.cpp" />
     <ClCompile Include="Source7.cpp" />

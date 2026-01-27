@@ -72,5 +72,8 @@
     <ClCompile Include="3_Falling_Point_Forces.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FilamentV2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
