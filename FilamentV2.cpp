@@ -1,4 +1,4 @@
-#include <SFML/Graphics.hpp>
+﻿#include <SFML/Graphics.hpp>
 #include <vector>
 #include <cmath>
 #include <iostream>
@@ -16,25 +16,21 @@ std::vector<sf::Vector2f> Base_Pos;
 std::vector<sf::Vector2f> Rest_Offset;
 
 float Visc = 70.0f;
-float Time_Step = 15.0f;
+float Time_Step = 1.0f;
 float Screen_Width = 1340.0f;
 float Screen_Height = 700.0f;
 
-// For adding spheres
 void Add_Sphere(const sf::Vector2f& Pos_Vector, const sf::Vector2f& F_Vector,
     float Rad = 10.0f, sf::Color Colour = sf::Color::Blue) {
     Spheres_List.push_back({ Pos_Vector, F_Vector, Colour,
                              sf::Vector2f(0.0f, 0.0f), Rad });
 }
 
-// Makes a bit bigger domain of filament calculations
 sf::Vector2f Minimum_Image(sf::Vector2f d) {
-    if (d.x > 0.5f * Screen_Width)  d.x = d.x - Screen_Width;
-    if (d.x < -0.5f * Screen_Width)  d.x = d.x + Screen_Width;
-
-    if (d.y > 0.5f * Screen_Height) d.y = d.y - Screen_Height;
-    if (d.y < -0.5f * Screen_Height) d.y = d.y + Screen_Height;
-
+    if (d.x > 0.5f * Screen_Width)  d.x -= Screen_Width;
+    if (d.x < -0.5f * Screen_Width) d.x += Screen_Width;
+    if (d.y > 0.5f * Screen_Height) d.y -= Screen_Height;
+    if (d.y < -0.5f * Screen_Height) d.y += Screen_Height;
     return d;
 }
 
@@ -53,7 +49,6 @@ sf::Vector2f Stokeslet(sf::Vector2f Dist, sf::Vector2f F_Vector) {
     V.y = Constant * (F_Vector.y / r + Dot_Prod * Dist.y / r3);
     return V;
 }
-
 
 sf::Vector2f faxen_Correction(sf::Vector2f Dist, sf::Vector2f F_Vector, float a2) {
     float r = std::sqrt(Dist.x * Dist.x + Dist.y * Dist.y);
@@ -91,32 +86,28 @@ sf::Vector2f faxen_Correction_Of_faxen(sf::Vector2f Dist, sf::Vector2f F_Vector,
     return V;
 }
 
-
 void Calc_Sphere_Velocity(size_t Sphere_Index, sf::Vector2f& V_Vector) {
     Sphere_Data target = Spheres_List[Sphere_Index];
     V_Vector = sf::Vector2f(0.0f, 0.0f);
 
     float pi = 3.14159f;
-
     float self_mob = 1.0f / (6.0f * pi * Visc * target.Rad);
-    V_Vector.x = V_Vector.x + target.F_Vector.x * self_mob;
-    V_Vector.y = V_Vector.y + target.F_Vector.y * self_mob;
 
-    for (size_t i = 0; i < Spheres_List.size(); i = i + 1) {
+    V_Vector += target.F_Vector * self_mob;
+
+    for (size_t i = 0; i < Spheres_List.size(); i++) {
         if (i == Sphere_Index) continue;
 
         Sphere_Data source = Spheres_List[i];
 
-        for (int dx = -1; dx <= 1; dx = dx + 1) {
-            for (int dy = -1; dy <= 1; dy = dy + 1) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
 
                 sf::Vector2f Image_Pos = source.Pos_Vector;
-                Image_Pos.x = Image_Pos.x + dx * Screen_Width;
-                Image_Pos.y = Image_Pos.y + dy * Screen_Height;
+                Image_Pos.x += dx * Screen_Width;
+                Image_Pos.y += dy * Screen_Height;
 
-                sf::Vector2f Dist;
-                Dist.x = target.Pos_Vector.x - Image_Pos.x;
-                Dist.y = target.Pos_Vector.y - Image_Pos.y;
+                sf::Vector2f Dist = target.Pos_Vector - Image_Pos;
 
                 sf::Vector2f S = Stokeslet(Dist, source.F_Vector);
                 sf::Vector2f C1 = faxen_Correction(Dist, source.F_Vector, source.Rad * source.Rad);
@@ -125,109 +116,87 @@ void Calc_Sphere_Velocity(size_t Sphere_Index, sf::Vector2f& V_Vector) {
                     source.Rad * source.Rad,
                     target.Rad * target.Rad);
 
-                V_Vector.x = V_Vector.x + S.x + C1.x + C2.x + C3.x;
-                V_Vector.y = V_Vector.y + S.y + C1.y + C2.y + C3.y;
+                V_Vector += (S + C1 + C2 + C3);
             }
         }
     }
 }
 
+//
+// ⭐ NEW INTERNAL SHAPE‑RESTORING SPRING FORCE
+//
+sf::Vector2f Shape_Spring(
+    const sf::Vector2f& A, const sf::Vector2f& B,
+    const sf::Vector2f& RestA, const sf::Vector2f& RestB,
+    float k_spring)
+{
+    sf::Vector2f dx = Minimum_Image(B - A);
+    sf::Vector2f dR = RestB - RestA;
 
-sf::Vector2f Spring_Force(const sf::Vector2f& A, const sf::Vector2f& B,
-    float rest_length, float k_spring,
-    const sf::Vector2f& RestA,
-    const sf::Vector2f& RestB) {
-    sf::Vector2f diff;
-    diff.x = B.x - A.x;
-    diff.y = B.y - A.y;
-
-    diff = Minimum_Image(diff);
-
-    float dist = std::sqrt(diff.x * diff.x + diff.y * diff.y);
-    if (dist < 0.0001f) return sf::Vector2f(0.0f, 0.0f);
-
-    float stretch = dist - rest_length;
-
-    sf::Vector2f dir;
-    dir.x = diff.x / dist;
-    dir.y = diff.y / dist;
-
-    sf::Vector2f F;
-    F.x = k_spring * stretch * dir.x;
-    F.y = k_spring * stretch * dir.y;
-
-    sf::Vector2f FA;
-    FA.x = k_spring * (RestA.x - A.x);
-    FA.y = k_spring * (RestA.y - A.y);
-
-    sf::Vector2f FB;
-    FB.x = k_spring * (RestB.x - B.x);
-    FB.y = k_spring * (RestB.y - B.y);
-
-    F.x = F.x + FA.x - FB.x;
-    F.y = F.y + FA.y - FB.y;
-
-    return F;
+    return k_spring * (dx - dR);
 }
 
-void Apply_Spring_Forces(float rest_length, float k_spring) {
-    for (size_t i = 0; i < Spheres_List.size(); i = i + 1) {
-        Spheres_List[i].F_Vector = sf::Vector2f(0.0f, 0.0f);
-    }
+void Apply_Spring_Forces(float k_spring) {
+    for (auto& s : Spheres_List)
+        s.F_Vector = sf::Vector2f(0, 0);
 
-    for (size_t i = 0; i + 1 < Spheres_List.size(); i = i + 1) {
-        sf::Vector2f RestA;
-        RestA.x = Base_Pos[i].x + Rest_Offset[i].x;
-        RestA.y = Base_Pos[i].y + Rest_Offset[i].y;
+    for (size_t i = 0; i + 1 < Spheres_List.size(); i++) {
 
-        sf::Vector2f RestB;
-        RestB.x = Base_Pos[i + 1].x + Rest_Offset[i + 1].x;
-        RestB.y = Base_Pos[i + 1].y + Rest_Offset[i + 1].y;
+        sf::Vector2f RestA = Base_Pos[i] + Rest_Offset[i];
+        sf::Vector2f RestB = Base_Pos[i + 1] + Rest_Offset[i + 1];
 
-        sf::Vector2f F = Spring_Force(Spheres_List[i].Pos_Vector,
+        sf::Vector2f F = Shape_Spring(
+            Spheres_List[i].Pos_Vector,
             Spheres_List[i + 1].Pos_Vector,
-            rest_length, k_spring,
-            RestA, RestB);
+            RestA, RestB,
+            k_spring
+        );
 
-        Spheres_List[i].F_Vector.x = Spheres_List[i].F_Vector.x + F.x;
-        Spheres_List[i].F_Vector.y = Spheres_List[i].F_Vector.y + F.y;
-
-        Spheres_List[i + 1].F_Vector.x = Spheres_List[i + 1].F_Vector.x - F.x;
-        Spheres_List[i + 1].F_Vector.y = Spheres_List[i + 1].F_Vector.y - F.y;
+        Spheres_List[i].F_Vector += F;
+        Spheres_List[i + 1].F_Vector -= F;
     }
 }
 
-// ------------------------------------------------------------
-// UPDATE POSITIONS
-// ------------------------------------------------------------
-void Update_Position(float rest_length, float k_spring) {
-    Apply_Spring_Forces(rest_length, k_spring);
+sf::Vector2f Compute_Net_Force() {
+    sf::Vector2f net(0, 0);
+    for (const auto& s : Spheres_List)
+        net += s.F_Vector;
+    return net;
+}
 
-    for (size_t i = 0; i < Spheres_List.size(); i = i + 1) {
+void Update_Position(float k_spring) {
+    Apply_Spring_Forces(k_spring);
+
+    sf::Vector2f netF = Compute_Net_Force();
+    static int counter = 0;
+    counter++;
+
+    if (counter % 40 == 0) {   // print every 20 frames
+        std::cout << "Net force: " << netF.x << ", " << netF.y << "\n";
+    }
+
+    for (size_t i = 0; i < Spheres_List.size(); i++)
         Calc_Sphere_Velocity(i, Spheres_List[i].V);
-    }
-    // For periodic boundaries
-    for (size_t i = 0; i < Spheres_List.size(); i = i + 1) {
-        Spheres_List[i].Pos_Vector.x = Spheres_List[i].Pos_Vector.x + Spheres_List[i].V.x * Time_Step;
-        Spheres_List[i].Pos_Vector.y = Spheres_List[i].Pos_Vector.y + Spheres_List[i].V.y * Time_Step;
 
-        if (Spheres_List[i].Pos_Vector.x < 0.0f) Spheres_List[i].Pos_Vector.x = Spheres_List[i].Pos_Vector.x + Screen_Width;
-        else if (Spheres_List[i].Pos_Vector.x >= Screen_Width) Spheres_List[i].Pos_Vector.x = Spheres_List[i].Pos_Vector.x - Screen_Width;
+    for (auto& s : Spheres_List) {
+        s.Pos_Vector += s.V * Time_Step;
 
-        if (Spheres_List[i].Pos_Vector.y < 0.0f) Spheres_List[i].Pos_Vector.y = Spheres_List[i].Pos_Vector.y + Screen_Height;
-        else if (Spheres_List[i].Pos_Vector.y >= Screen_Height) Spheres_List[i].Pos_Vector.y = Spheres_List[i].Pos_Vector.y - Screen_Height;
+        if (s.Pos_Vector.x < 0) s.Pos_Vector.x += Screen_Width;
+        else if (s.Pos_Vector.x >= Screen_Width) s.Pos_Vector.x -= Screen_Width;
+
+        if (s.Pos_Vector.y < 0) s.Pos_Vector.y += Screen_Height;
+        else if (s.Pos_Vector.y >= Screen_Height) s.Pos_Vector.y -= Screen_Height;
     }
 }
-
 
 void Draw_Sphere(std::vector<sf::Vertex>& lines, const Sphere_Data& sphere) {
     float Rad = sphere.Rad;
     int Segments = 40;
     float pi = 3.14159f;
 
-    for (int i = 0; i < Segments; i = i + 1) {
-        float a1 = 2.0f * pi * i / Segments;
-        float a2 = 2.0f * pi * (i + 1) / Segments;
+    for (int i = 0; i < Segments; i++) {
+        float a1 = 2 * pi * i / Segments;
+        float a2 = 2 * pi * (i + 1) / Segments;
 
         sf::Vector2f p1 = sphere.Pos_Vector + sf::Vector2f(Rad * std::cos(a1), Rad * std::sin(a1));
         sf::Vector2f p2 = sphere.Pos_Vector + sf::Vector2f(Rad * std::cos(a2), Rad * std::sin(a2));
@@ -239,58 +208,47 @@ void Draw_Sphere(std::vector<sf::Vertex>& lines, const Sphere_Data& sphere) {
 
 void Draw_Everything(std::vector<sf::Vertex>& lines) {
     lines.clear();
-    for (size_t i = 0; i < Spheres_List.size(); i = i + 1) {
+    for (size_t i = 0; i < Spheres_List.size(); i++)
         Draw_Sphere(lines, Spheres_List[i]);
-    }
 }
 
-
 sf::Vector2f Compute_COM() {
-    sf::Vector2f com(0.0f, 0.0f);
-    for (size_t i = 0; i < Spheres_List.size(); i = i + 1) {
-        com.x = com.x + Spheres_List[i].Pos_Vector.x;
-        com.y = com.y + Spheres_List[i].Pos_Vector.y;
-    }
-    com.x = com.x / (float)Spheres_List.size();
-    com.y = com.y / (float)Spheres_List.size();
-    return com;
+    sf::Vector2f com(0, 0);
+    for (const auto& s : Spheres_List)
+        com += s.Pos_Vector;
+    return com / (float)Spheres_List.size();
 }
 
 int main() {
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(),
-        "Orientation-Aware Travelling Wave Swimmer");
+        "Travelling Wave Swimmer — Internal Spring Model");
 
     size_t N = 10;
     float spacing = 15.0f;
     float radius = 1.0f;
+    float spring_k = 0.02f;
 
     float base_x = 600.0f;
     float base_y = 350.0f;
 
-    float spring_k = 0.02f;
-
     float Angle = 3.14159f / 4.0f;
 
-    sf::Vector2f Dir;
-    Dir.x = std::cos(Angle);
-    Dir.y = std::sin(Angle);
-
-    sf::Vector2f Normal;
-    Normal.x = -Dir.y;
-    Normal.y = Dir.x;
+    sf::Vector2f Dir(std::cos(Angle), std::sin(Angle));
+    sf::Vector2f Normal(-Dir.y, Dir.x);
 
     Base_Pos.resize(N);
     Rest_Offset.resize(N);
 
-    for (size_t i = 0; i < N; i = i + 1) {
-        sf::Vector2f Pos;
-        Pos.x = base_x + Dir.x * (float)i * spacing;
-        Pos.y = base_y + Dir.y * (float)i * spacing;
+    for (size_t i = 0; i < N; i++) {
+        sf::Vector2f Pos = sf::Vector2f(
+            base_x + Dir.x * (float)i * spacing,
+            base_y + Dir.y * (float)i * spacing
+        );
 
         Base_Pos[i] = Pos;
-        Rest_Offset[i] = sf::Vector2f(0.0f, 0.0f);
+        Rest_Offset[i] = sf::Vector2f(0, 0);
 
-        Add_Sphere(Pos, sf::Vector2f(0.0f, 0.0f), radius, sf::Color::Blue);
+        Add_Sphere(Pos, sf::Vector2f(0, 0), radius, sf::Color::Blue);
     }
 
     sf::Clock clock;
@@ -305,30 +263,19 @@ int main() {
 
         float t = clock.getElapsedTime().asSeconds();
 
-        float A = 50.0f;
+        float A = 100.0f;
         float omega = 2.0f;
         float k = 1.0f;
 
-        for (size_t i = 0; i < N; i = i + 1) {
+        for (size_t i = 0; i < N; i++) {
             float wave = A * std::sin(k * (float)i - omega * t);
-
-            Rest_Offset[i].x = Normal.x * wave;
-            Rest_Offset[i].y = Normal.y * wave;
+            Rest_Offset[i] = Normal * wave;
         }
 
-        Update_Position(spacing, spring_k);
+        Update_Position(spring_k);
 
         sf::Vector2f Current_COM = Compute_COM();
-
-        sf::Vector2f COM_Vel;
-        COM_Vel.x = (Current_COM.x - Prev_COM.x) / Time_Step;
-        COM_Vel.y = (Current_COM.y - Prev_COM.y) / Time_Step;
-
         Prev_COM = Current_COM;
-
-        float Speed = std::sqrt(COM_Vel.x * COM_Vel.x + COM_Vel.y * COM_Vel.y);
-        std::cout << "Swimming speed: " << Speed << "\n";
-
 
         Draw_Everything(allLines);
 
@@ -339,3 +286,4 @@ int main() {
 
     return 0;
 }
+

@@ -42,22 +42,7 @@
     <ClCompile Include="PointForces_Readable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source3.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source4.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="RFT.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source5.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source6.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Source7.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="RFT_attempt_1.cpp">
@@ -72,7 +57,7 @@
     <ClCompile Include="3_Falling_Point_Forces.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FilamentV2.cpp">
+    <ClCompile Include="FilamentRemastered.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
