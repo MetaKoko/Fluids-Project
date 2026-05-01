@@ -18,6 +18,13 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="3_Falling_Point_Forces.cpp" />
+    <ClCompile Include="3_Falling_Spheres.cpp" />
+    <ClCompile Include="MultipleSwimmersV1.cpp" />
+    <ClCompile Include="Still_Quiver_Readable.cpp" />
+    <ClCompile Include="WorkingNormalStokeslets.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -112,7 +119,8 @@
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
       <TreatWarningAsError>false</TreatWarningAsError>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\klaud\OneDrive\Desktop\SFMLFile\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\klaud\OneDrive\Desktop\eigen-5.0.0\eigen-5.0.0;C:\Users\klaud\OneDrive\Desktop\SFMLFile\include</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,7 +141,8 @@
       <ExternalWarningLevel>Level3</ExternalWarningLevel>
       <TreatWarningAsError>false</TreatWarningAsError>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\klaud\OneDrive\Desktop\SFMLFile\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\klaud\OneDrive\Desktop\eigen-5.0.0\eigen-5.0.0;C:\Users\klaud\OneDrive\Desktop\SFMLFile\include</AdditionalIncludeDirectories>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,23 +151,6 @@
       <AdditionalDependencies>sfml-graphics-d.lib;sfml-window-d.lib;sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="PointForces.cpp" />
-    <ClCompile Include="RFT_attempt_1.cpp" />
-    <ClCompile Include="RFT_attempt_2.cpp" />
-    <ClCompile Include="3_Falling_Point_Forces.cpp" />
-    <ClCompile Include="Sphere_VplusT_FConDir_Readable.cpp" />
-    <ClCompile Include="Sphere_VplusT_FChaDir_Readable.cpp" />
-    <ClCompile Include="FilamentRemastered.cpp" />
-    <ClCompile Include="Still_Quiver_Readable.cpp" />
-    <ClCompile Include="Sphere_V_Readable.cpp" />
-    <ClCompile Include="PointForces_Readable.cpp" />
-    <ClCompile Include="RFT.cpp" />
-    <ClCompile Include="Sphere_VplusT_FChaDir.cpp" />
-    <ClCompile Include="Sphere_VplusT_FConDir.cpp" />
-    <ClCompile Include="Sphere_V.cpp" />
-    <ClCompile Include="Still_Quiver.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

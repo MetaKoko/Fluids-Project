@@ -113,9 +113,9 @@ int main() {
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "Fluid Flow Visualization");
 
     // Here is where we can add our point forces, first vector is the postion and the second is the force of it
-    Point_Force(sf::Vector2f(300, 200), sf::Vector2f(700, 0), sf::Color::Blue);
+    Point_Force(sf::Vector2f(400, 300), sf::Vector2f(700, 0), sf::Color::Blue);
     Point_Force(sf::Vector2f(600, 500), sf::Vector2f(-200, -500), sf::Color::Red);
-    Point_Force(sf::Vector2f(1000, 400), sf::Vector2f(-300, 800), sf::Color::Magenta);
+    Point_Force(sf::Vector2f(800, 200), sf::Vector2f(-300, 800), sf::Color::Magenta);
 
     std::vector<sf::Vertex> allLines;
     Draw_Everything(allLines);

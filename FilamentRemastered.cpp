@@ -22,9 +22,9 @@ std::vector<Sphere_Data> Spheres_List;
 //Numerical parameters and viscosity
 
 double Visc = 1e-3;
-double Time_Step = 0.000001;
-double Domain_Width = 2e-3;
-double Domain_Height = 2e-3;
+double Time_Step = 1e-6;
+double Domain_Width = 2e-1;
+double Domain_Height = 2e-1;
 constexpr float VIS_SCALE = 2e7f;
 constexpr double DRAW_SCALE = 2e7;
 
@@ -44,7 +44,9 @@ std::vector<double> k_structural;
 std::vector<double> rest_structural;
 std::vector<double> k_bend_structural;
 bool Hydro_On = true;
-bool Start_With_Sine = false;
+bool Start_With_Sine = true;
+bool Use_Tapered_Stiffness = false;
+bool Use_Tapered_Bending = false;
 // =============================================================
 
 // =============================================================
@@ -98,29 +100,22 @@ void Calc_Sphere_Velocity(size_t Sphere_Index, sf::Vector2<double>& V_Vector)
     double pi = 3.141592653589793;
     double self_mob = 1.0 / (6.0 * pi * Visc * target.Rad);
 
+    // Self mobility
     V_Vector += target.F_Vector * self_mob;
 
+    // Direct interactions only — NO periodic images
     for (size_t i = 0; i < Spheres_List.size(); i++) {
         if (i == Sphere_Index) continue;
 
         Sphere_Data source = Spheres_List[i];
 
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
+        sf::Vector2<double> Dist = target.Pos_Unwrapped - source.Pos_Unwrapped;
 
-                sf::Vector2<double> Image_Pos = source.Pos_Unwrapped;
-                Image_Pos.x += dx * Domain_Width;
-                Image_Pos.y += dy * Domain_Height;
-
-                sf::Vector2<double> Dist =
-                    Minimum_Image(target.Pos_Unwrapped - Image_Pos);
-                double epsilon = source.Rad;
-                V_Vector += Regularized_Stokeslet(Dist, source.F_Vector, epsilon);
-
-            }
-        }
+        double epsilon = source.Rad;
+        V_Vector += Regularized_Stokeslet(Dist, source.F_Vector, epsilon);
     }
 }
+
 
 void Apply_Structural_Springs()
 {
@@ -174,7 +169,7 @@ void Update_Position()
 {
     for (auto& s : Spheres_List)
         s.F_Vector = { 0.0, 0.0 };
-    Apply_Structural_Springs();
+    //Apply_Structural_Springs();
     //Apply_Bending_Springs();
 
     for (size_t i = 0; i < Spheres_List.size(); i++) {
@@ -200,7 +195,7 @@ void Update_Position()
     if (step_counter % 200 == 0) {
         std::cout << "Step " << step_counter << " forces: ";
         for (size_t i = 0; i < Spheres_List.size(); i++) {
-            //std::cout << Spheres_List[i].F_Vector.y << " ";
+            std::cout << Spheres_List[i].F_Vector.y << " ";
         }
         std::cout << "\n";
     }
@@ -332,23 +327,38 @@ int main() {
     k_structural[1] = k_torso_tail;
     rest_structural[1] = rest_torso_tail;
 
-    // Tail stiffness taper
+    double k_tail_const = 1e-7;
+    double k_tail_base = 1e-7;
+    double k_tail_tip = 1e-7; 
+
     for (size_t i = 2; i < N - 1; i++) {
-        double s = double(i - 2) / double((N - 1) - 2);
-        double k_base = 1e-7;
-        double k_tip = 1e-7;
-        k_structural[i] = k_base * std::pow(k_tip / k_base, s);
+
+        if (!Use_Tapered_Stiffness) {         
+            k_structural[i] = k_tail_const;
+        }
+        else {
+            double s = double(i - 2) / double((N - 1) - 2);
+            k_structural[i] = k_tail_base * std::pow(k_tail_tip / k_tail_base, s);
+        }
         rest_structural[i] = rest_tail_tail;
     }
 
-	//bending stiffness
+
+    double k_bend_const = 1.5e-7;
+    double k_bend_base = 1e-8;
+    double k_bend_tip = 2e-9;
+
     for (size_t i = 0; i + 2 < N; i++) {
-        double s = double(i) / double(N - 3);
-        double k_bend_base = 1e-7;
-        double k_bend_tip = 1e-7;
-        k_bend_structural[i] =
-            k_bend_base * std::pow(k_bend_tip / k_bend_base, s);
+        if (!Use_Tapered_Bending) {
+            k_bend_structural[i] = k_bend_const;
+        }
+        else {
+            double s = double(i) / double(N - 3);
+            k_bend_structural[i] =
+                k_bend_base * std::pow(k_bend_tip / k_bend_base, s);
+        }
     }
+
 
 
     double base_x = 0.5 * Domain_Width;
@@ -366,7 +376,7 @@ int main() {
     A_global = A;
     k_global = k;
     omega_global = omega;
-    k_wave_global = 2.5e-6; 
+    k_wave_global = 2.5e-3; 
 
     // Build swimmer
     Spheres_List.clear();
@@ -392,7 +402,6 @@ int main() {
 
     for (size_t i = 2; i < N; i++) {
         double x = x_prev;
-
         double y;
         if (Start_With_Sine) {
             double s = x - x1;
@@ -401,10 +410,8 @@ int main() {
         else {
             y = y1;
         }
-
         Add_Sphere({ x, y }, { 0.0, 0.0 }, tail_radius, sf::Color::Blue);
         Target_Pos[i] = { x, y };
-
         x_prev += rest_tail_tail;
     }
 
