@@ -7,19 +7,17 @@
 #include <optional>
 #include <filesystem>
 
-// =============================================================
-// DATA STRUCTURES: MULTI-SWIMMER (NEW CODE)
-// =============================================================
+
 
 struct Sphere_Data {
-    // Two coordinate sets
-    sf::Vector2<double> Pos_actual;   // coupled universe: full hydro + drawing
-    sf::Vector2<double> Pos_iso;      // isolated universe: per-swimmer hydro
 
-    // Forces and velocities
-    sf::Vector2<double> F_internal;   // wave forcing (computed from Pos_iso)
-    sf::Vector2<double> V_full;       // velocity in coupled universe
-    sf::Vector2<double> V_iso;        // velocity in isolated universe
+    sf::Vector2<double> Pos_actual;
+    sf::Vector2<double> Pos_iso;    
+
+ 
+    sf::Vector2<double> F_internal;
+    sf::Vector2<double> V_full;   
+    sf::Vector2<double> V_iso;      
 
     sf::Color Colour;
     double Rad;
@@ -28,26 +26,24 @@ struct Sphere_Data {
 };
 
 struct Swimmer {
-    std::size_t start;     // index of first bead in Spheres_List
-    std::size_t count;     // number of beads
+    std::size_t start;    
+    std::size_t count; 
 
-    double A;              // amplitude
-    double k;              // wavenumber
-    double omega;          // angular frequency
-    double base_y;         // centerline y
-    double phase;          // wave phase
-    double start_x;        // starting x position
+    double A;          
+    double k;           
+    double omega;        
+    double base_y;         
+    double phase;         
+    double start_x;       
 
-    // Diagnostics
+
     double COM_actual_prev_x = 0.0;
     double COM_iso_prev_x = 0.0;
     double accum_time = 0.0;
 };
 
 
-// =============================================================
-// GLOBALS: MULTI-SWIMMER
-// =============================================================
+
 
 std::vector<Sphere_Data> Spheres_List;
 std::vector<Swimmer> Swimmers;
@@ -67,9 +63,7 @@ int step_counter = 0;
 bool Hydro_On = true;
 
 
-// =============================================================
-// UTILITY HELPERS: MULTI-SWIMMER
-// =============================================================
+
 
 std::size_t swimmerOf(std::size_t bead_index)
 {
@@ -107,9 +101,7 @@ sf::Vector2<double> Compute_COM_iso(std::size_t s_index)
     return com;
 }
 
-// =============================================================
-// ARC-LENGTH / NEWTON INVERSION (shared)
-// =============================================================
+
 
 double arc_length_integrand(double x, double A, double k)
 {
@@ -141,7 +133,7 @@ double s_of_x(double x0, double x, double A, double k)
 
 double x_of_s(double x0, double s_target, double A, double k)
 {
-    double x = x0 + s_target; // initial guess: straight chain
+    double x = x0 + s_target;
     for (int it = 0; it < 8; ++it) {
         double s_val = s_of_x(x0, x, A, k);
         double f = s_val - s_target;
@@ -152,9 +144,6 @@ double x_of_s(double x0, double s_target, double A, double k)
 }
 
 
-// =============================================================
-// STOKESLET (shared)
-// =============================================================
 
 sf::Vector2<double> Stokeslet(const sf::Vector2<double>& d,
     const sf::Vector2<double>& F,
@@ -178,9 +167,7 @@ sf::Vector2<double> Stokeslet(const sf::Vector2<double>& d,
     };
 }
 
-// =============================================================
-// STRUCTURAL SPRINGS (MULTI-SWIMMER)
-// =============================================================
+
 
 void Apply_Springs()
 {
@@ -195,7 +182,7 @@ void Apply_Springs()
             std::size_t a = sw.start + i;
             std::size_t b = sw.start + i + 1;
 
-            // Actual universe springs
+
             {
                 sf::Vector2<double> pA = Spheres_List[a].Pos_actual;
                 sf::Vector2<double> pB = Spheres_List[b].Pos_actual;
@@ -211,7 +198,7 @@ void Apply_Springs()
                 }
             }
 
-            // Isolated universe springs
+
             {
                 sf::Vector2<double> pA = Spheres_List[a].Pos_iso;
                 sf::Vector2<double> pB = Spheres_List[b].Pos_iso;
@@ -231,17 +218,14 @@ void Apply_Springs()
 }
 
 
-// =============================================================
-// WAVE FORCING (MULTI-SWIMMER, from Pos_iso)
-// =============================================================
+
 
 void Apply_Wave_Forcing()
 {
-    // Clear internal forcing
+
     for (auto& b : Spheres_List)
         b.F_internal = { 0.0, 0.0 };
 
-    // For each swimmer, compute forcing using its isolated configuration
     for (std::size_t s = 0; s < Swimmers.size(); ++s) {
         auto& sw = Swimmers[s];
 
@@ -249,14 +233,14 @@ void Apply_Wave_Forcing()
             std::size_t idx = sw.start + i;
             auto& bead = Spheres_List[idx];
 
-            // Use isolated x-position to define the target waveform
+
             double x_iso = bead.Pos_iso.x;
             double y_tar = sw.base_y + sw.A * std::sin(sw.k * (x_iso - sw.start_x) + sw.phase);
 
 
             double dy = y_tar - bead.Pos_iso.y;
 
-            // This F_internal is then used in BOTH universes
+  
             bead.F_internal.y += k_wave_global * dy;
         }
     }
@@ -264,9 +248,7 @@ void Apply_Wave_Forcing()
 
 
 
-// =============================================================
-// SWIMMER INITIALIZATION (MULTI-SWIMMER)
-// =============================================================
+
 
 void InitializeSwimmer_Newton(
     std::size_t N,
@@ -285,10 +267,10 @@ void InitializeSwimmer_Newton(
 
     double x0 = base_x;
 
-    // Total arclength of one wavelength
+ 
     double rest_length = lambda / (N - 1);
 
-    Global_Spacing = rest_length; // shared for all swimmers (same geometry)
+    Global_Spacing = rest_length; 
 
     for (std::size_t i = 0; i < N; ++i)
     {
@@ -297,15 +279,15 @@ void InitializeSwimmer_Newton(
         double y_i = base_y + A * std::sin(k * (x_i - x0));
 
         Spheres_List.push_back({
-            {x_i, y_i},     // Pos_actual
-            {x_i, y_i},     // Pos_iso
-            {0.0, 0.0},     // F_internal
-            {0.0, 0.0},     // V_full
-            {0.0, 0.0},     // V_iso
+            {x_i, y_i},   
+            {x_i, y_i},  
+            {0.0, 0.0}, 
+            {0.0, 0.0},   
+            {0.0, 0.0},    
             sf::Color::Blue,
             bead_rad,
-            {0.0, 0.0},     // F_spring_actual
-            {0.0, 0.0}      // F_spring_iso
+            {0.0, 0.0}, 
+            {0.0, 0.0}    
             });
     }
 
@@ -316,16 +298,13 @@ void InitializeSwimmer_Newton(
         k,
         omega,
         base_y,
-        0.0,   // phase
-        0.0,   // COM_actual_prev_x
-        0.0,   // COM_iso_prev_x
-        0.0    // accum_time
+        0.0, 
+        0.0,  
+        0.0, 
+        0.0
         });
 }
 
-// =============================================================
-// ADVANCE WAVE PHASES (MULTI-SWIMMER)
-// =============================================================
 void Advance_Wave_Phases()
 {
     for (auto& sw : Swimmers) {
@@ -333,40 +312,36 @@ void Advance_Wave_Phases()
     }
 }
 
-// =============================================================
-// COMPUTE HYDRODYNAMIC VELOCITIES (MULTI-SWIMMER)
-// =============================================================
+
 void Compute_Velocities()
 {
     double pi = 3.141592653589793;
 
-    // Reset velocities
     for (auto& b : Spheres_List) {
         b.V_full = { 0.0, 0.0 };
         b.V_iso = { 0.0, 0.0 };
     }
 
-    // Self-mobility in both universes
+
     for (auto& b : Spheres_List) {
         double zeta = 6.0 * pi * Visc * b.Rad;
 
-        // Coupled universe: internal + actual springs
+
         b.V_full += (b.F_internal + b.F_spring_actual) / zeta;
 
-        // Isolated universe: internal + isolated springs
+
         b.V_iso += (b.F_internal + b.F_spring_iso) / zeta;
     }
 
     std::size_t N = Spheres_List.size();
 
-    // Hydrodynamic interactions
 #pragma omp parallel for
     for (int i = 0; i < (int)N; ++i) {
 
         auto& bi = Spheres_List[i];
         std::size_t si = swimmerOf(i);
 
-        // FULL HYDRODYNAMICS (coupled universe)
+
         for (std::size_t j = 0; j < N; ++j) {
             if (j == (std::size_t)i) continue;
 
@@ -377,7 +352,7 @@ void Compute_Velocities()
             bi.V_full += vA;
         }
 
-        // ISOLATED HYDRODYNAMICS (same swimmer only)
+
         for (std::size_t j = Swimmers[si].start;
             j < Swimmers[si].start + Swimmers[si].count; ++j)
         {
@@ -386,28 +361,26 @@ void Compute_Velocities()
             const auto& bj = Spheres_List[j];
             sf::Vector2<double> dI = bi.Pos_iso - bj.Pos_iso;
 
-            sf::Vector2<double> Fsrc_iso = bj.F_internal + bj.F_spring_iso;  // <-- NEW
-            sf::Vector2<double> vI = Stokeslet(dI, Fsrc_iso, Visc);          // <-- use total
+            sf::Vector2<double> Fsrc_iso = bj.F_internal + bj.F_spring_iso;  
+            sf::Vector2<double> vI = Stokeslet(dI, Fsrc_iso, Visc);          
             bi.V_iso += vI;
         }
 
     }
 }
 
-// =============================================================
-// ONE PHYSICS STEP (MULTI-SWIMMER)
-// =============================================================
+
 void Do_Physics_Step()
 {
     double pi = 3.141592653589793;
 
-    // 1) Springs
+
     Apply_Springs();
 
-    // 2) Wave forcing (from isolated universe)
+
     Apply_Wave_Forcing();
 
-    // 3) Hydrodynamics
+
     if (Hydro_On) {
         Compute_Velocities();
     }
@@ -421,13 +394,12 @@ void Do_Physics_Step()
         }
     }
 
-    // 4) Integrate both coordinate sets
+
     for (auto& b : Spheres_List) {
         b.Pos_actual += b.V_full * Time_Step;
         b.Pos_iso += b.V_iso * Time_Step;
     }
 
-    // 5) Diagnostics: speeds per swimmer
     for (std::size_t s = 0; s < Swimmers.size(); ++s) {
 
         auto& sw = Swimmers[s];
@@ -465,9 +437,7 @@ void Do_Physics_Step()
     step_counter++;
 }
 
-// =============================================================
-// WRAPPING FOR DISPLAY (MULTI-SWIMMER)
-// =============================================================
+
 sf::Vector2<double> Wrap_For_Display(sf::Vector2<double> p) {
     p.x = fmod(p.x, Domain_Width);
     if (p.x < 0) p.x += Domain_Width;
@@ -478,9 +448,7 @@ sf::Vector2<double> Wrap_For_Display(sf::Vector2<double> p) {
     return p;
 }
 
-// =============================================================
-// DRAWING: BEADS (Pos_actual only)
-// =============================================================
+
 void Draw_Sphere(std::vector<sf::Vertex>& lines, std::size_t index) {
     const Sphere_Data& sphere = Spheres_List[index];
     sf::Vector2<double> center = Wrap_For_Display(sphere.Pos_actual);
@@ -507,9 +475,7 @@ void Draw_Sphere(std::vector<sf::Vertex>& lines, std::size_t index) {
     }
 }
 
-// =============================================================
-// DRAWING: SPRING CONNECTIONS (Pos_actual only)
-// =============================================================
+
 void Draw_Connections(std::vector<sf::Vertex>& lines) {
     for (const auto& sw : Swimmers) {
         std::size_t start = sw.start;
@@ -531,9 +497,7 @@ void Draw_Connections(std::vector<sf::Vertex>& lines) {
     }
 }
 
-// =============================================================
-// DRAWING: WAVEFORM GUIDES (visual, lab-frame using Pos_actual.x)
-// =============================================================
+
 void Draw_WaveformGuides(std::vector<sf::Vertex>& lines, double bead_rad)
 {
     if (Spheres_List.empty() || Swimmers.empty()) return;
@@ -578,9 +542,7 @@ void Draw_WaveformGuides(std::vector<sf::Vertex>& lines, double bead_rad)
 }
 
 
-// =============================================================
-// DRAW EVERYTHING (MULTI-SWIMMER)
-// =============================================================
+
 void Draw_Everything(std::vector<sf::Vertex>& lines) {
     lines.clear();
 
@@ -593,9 +555,7 @@ void Draw_Everything(std::vector<sf::Vertex>& lines) {
         Draw_Sphere(lines, i);
 }
 
-// =============================================================
-// SAVE FRAME (for video)
-// =============================================================
+
 void SaveFrame(sf::RenderWindow& window, int frameNumber)
 {
     std::filesystem::create_directories("frames");
@@ -615,9 +575,6 @@ void SaveFrame(sf::RenderWindow& window, int frameNumber)
 }
 
 
-// =============================================================
-// SOLO SIMULATION (OLD CODE) EMBEDDED
-// =============================================================
 
 struct SoloSphere {
     sf::Vector2<double> Pos_Unwrapped;
@@ -714,7 +671,7 @@ void Solo_Update_Position(double k_spring)
         SoloSpheres[i].F_Vector.y += (Solo_k_wave_global * dy);
     }
 
-    // Hydrodynamics ON (as in old code)
+
 #pragma omp parallel for
     for (int i = 0; i < (int)SoloSpheres.size(); i++)
         Solo_Calc_Sphere_Velocity(i, SoloSpheres[i].V);
@@ -786,9 +743,7 @@ void Solo_Step(double k_spring)
     Solo_COM_current = Solo_Compute_COM();
 }
 
-// =============================================================
-// MAIN
-// =============================================================
+
 int main() {
     sf::VideoMode mode = sf::VideoMode::getDesktopMode();
     sf::RenderWindow window(mode, "Multi-swimmer + Solo reference");
@@ -806,7 +761,7 @@ int main() {
     k_spring_global = 1e-2;
     k_wave_global = 1e-2;
 
-    // ===================== DEFINE MULTI-SWIMMERS =====================
+
     struct SwimmerParams {
         std::size_t N;
         double A;
@@ -831,8 +786,7 @@ int main() {
         );
     }
 
-    // ===================== SOLO SWIMMER (OLD CODE) =====================
-    // Same geometry as swimmer 0, but single chain
+
     std::size_t N_solo = 25;
     double A_solo = 2.0e-5;
     double L_arc_solo = 5e-4;
@@ -851,7 +805,6 @@ int main() {
         bead_rad
     );
 
-    // Camera: center on first multi-swimmer
     sf::Vector2<double> COM0 = Compute_COM_actual(0);
     sf::Vector2f COM0_px(static_cast<float>(COM0.x * VIS_SCALE),
         static_cast<float>(COM0.y * VIS_SCALE));
@@ -876,9 +829,7 @@ int main() {
     double solo_accum_time = 0.0;
     double solo_COM_start_x = Solo_COM_current.x;
 
-    // =============================================================
-    // MAIN LOOP
-    // =============================================================
+
     while (window.isOpen()) {
 
         while (const std::optional<sf::Event> eventOpt = window.pollEvent()) {
@@ -926,10 +877,8 @@ int main() {
         int PhysicsStepsPerFrame = 100;
         for (int s = 0; s < PhysicsStepsPerFrame; ++s) {
 
-            // Step SOLO simulation (old code)
             Solo_Step(k_spring_solo);
 
-            // Measure SOLO speed over one period
             solo_accum_time += Time_Step;
             double T_solo = 2.0 * pi / Solo_omega_global;
             if (solo_accum_time >= T_solo) {
@@ -940,7 +889,6 @@ int main() {
                 solo_accum_time = 0.0;
             }
 
-            // Step MULTI-SWIMMER simulation (new code)
             Advance_Wave_Phases();
             Do_Physics_Step();
         }
